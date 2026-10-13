@@ -5,7 +5,6 @@ import os
 import re
 import time
 import traceback
-from datetime import timedelta
 from urllib.parse import urlparse
 
 import discord
@@ -31,7 +30,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 db = Database()
 engine = AttackEngine()
 
-# user_id -> {"task": Task, "mode": str, "target": str, "port": int, ...}
+# user_id -> {task, mode, target, port, msg, ...}
 active_attacks: dict[int, dict] = {}
 
 
@@ -64,7 +63,7 @@ def is_forbidden(target: str) -> bool:
     return host in FORBIDDEN_IPS
 
 
-def _parse_duration(s: str) -> int | None:
+def _parse_duration(s: str):
     """1h / 1d / 1m / TH → seconds; TH = 0 (forever)"""
     s = s.strip()
     if s.upper() == "TH":
@@ -114,11 +113,13 @@ async def on_command_error(ctx, error):
 # ═══════════════════════════════════════════
 @bot.command(name="ddos", aliases=["panel"])
 async def ddos_cmd(ctx):
-    # ส่ง panel ให้ทุกคนเห็น — แต่กดปุ่มแล้วค่อยเช็คสิทธิ์
     try:
-        await ctx.send(view=build_panel(), flags=discord.MessageFlags.components_v2)
+        await ctx.send(
+            view=build_panel(),
+            flags=discord.MessageFlags.components_v2,
+        )
     except TypeError:
-        # fallback ถ้า version ไม่รองรับ flag
+        # fallback สำหรับ discord.py เก่า
         await ctx.send(view=build_panel())
 
 
@@ -172,7 +173,7 @@ async def open_attack_modal(interaction: discord.Interaction):
             ephemeral=True,
         )
         return
-    if engine.is_running(user_id):
+    if engine.is_running(user_id) or engine.any_running():
         await interaction.response.send_message(
             "รอของเก่าหมดก่อน", ephemeral=True
         )
@@ -226,11 +227,17 @@ async def handle_attack_submit(interaction: discord.Interaction, modal):
         )
         return
 
-    await interaction.response.send_message(
-        view=build_mode_select(user_id, target, port, duration),
-        ephemeral=True,
-        flags=discord.MessageFlags.components_v2,
-    )
+    try:
+        await interaction.response.send_message(
+            view=build_mode_select(user_id, target, port, duration),
+            ephemeral=True,
+            flags=discord.MessageFlags.components_v2,
+        )
+    except TypeError:
+        await interaction.response.send_message(
+            view=build_mode_select(user_id, target, port, duration),
+            ephemeral=True,
+        )
 
 
 # ═══════════════════════════════════════════
@@ -252,14 +259,18 @@ async def start_attack(interaction: discord.Interaction, mode: str,
         )
         return
 
-    # ephemeral message ที่มี mode select — แก้เป็น attack running
-    await interaction.response.edit_message(
-        view=build_attack_running(
-            target=target, port=port, mode=mode,
-            time_left=duration, total=duration, speed="...",
-        ),
-        flags=discord.MessageFlags.components_v2,
-    )
+    # edit ephemeral message → attack running
+    try:
+        await interaction.response.edit_message(
+            view=build_attack_running(
+                target=target, port=port, mode=mode,
+                time_left=duration, total=duration, speed="...",
+            ),
+        )
+    except Exception:
+        traceback.print_exc()
+        return
+
     msg = await interaction.original_response()
 
     await db.log_attack(user_id, target, port, mode, duration)
@@ -274,11 +285,12 @@ async def start_attack(interaction: discord.Interaction, mode: str,
         "start": time.time(),
     }
     active_attacks[user_id] = state
-    state["task"] = asyncio.create_task(
-        _attack_loop(user_id, state)
-    )
+    state["task"] = asyncio.create_task(_attack_loop(user_id, state))
 
 
+# ═══════════════════════════════════════════
+# Attack loop
+# ═══════════════════════════════════════════
 async def _attack_loop(user_id: int, state: dict):
     target = state["target"]
     port   = state["port"]
@@ -292,9 +304,8 @@ async def _attack_loop(user_id: int, state: dict):
                 view=build_attack_running(
                     target=target, port=port, mode=mode,
                     time_left=time_left, total=total,
-                    speed=f"{speed} ({hits} hits)",
+                    speed=speed, hits=hits,
                 ),
-                flags=discord.MessageFlags.components_v2,
             )
         except discord.HTTPException:
             pass
@@ -324,9 +335,9 @@ async def _attack_loop(user_id: int, state: dict):
             await msg.edit(
                 view=build_attack_running(
                     target=target, port=port, mode=mode,
-                    time_left=0, total=total, speed="finished",
+                    time_left=0, total=total,
+                    speed="finished", hits=0,
                 ),
-                flags=discord.MessageFlags.components_v2,
             )
         except Exception:
             pass
