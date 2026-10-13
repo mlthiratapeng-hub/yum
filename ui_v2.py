@@ -108,8 +108,8 @@ class ModeSelect(ui.Select):
             discord.SelectOption(label="Minecraft", value="minecraft", emoji="⛏️"),
             discord.SelectOption(label="Free Fire", value="freefire",  emoji="🔥"),
             discord.SelectOption(label="Discord",   value="discord",   emoji="🎧"),
-            discord.SelectOption(label="L4 (UDP)",  value="l4",        emoji="🌍"),
-            discord.SelectOption(label="L7 (HTTP)", value="l7",        emoji="🌐"),
+            discord.SelectOption(label="L4",  value="l4",        emoji="🌍"),
+            discord.SelectOption(label="L7", value="l7",        emoji="🌐"),
         ]
         super().__init__(placeholder="เลือกโหมด", options=options,
                          custom_id="mode_select")
@@ -136,7 +136,7 @@ def build_attack_running(target: str, port: int, mode: str,
     view = ui.LayoutView(timeout=None)
     c = ui.Container()
 
-    c.add_item(ui.TextDisplay("# Attack Launched Successfully"))
+    c.add_item(ui.TextDisplay("# Ddos ATTACK"))
     c.add_item(ui.TextDisplay(
         f"```\n"
         f"[+] Target    : {target}\n"
