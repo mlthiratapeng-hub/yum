@@ -100,9 +100,9 @@ class ModeSelect(ui.Select):
     def __init__(self, user_id: int, target: str, port: int, duration: int):
         options = [
             discord.SelectOption(label="Minecraft",     value="minecraft", emoji="⛏️"),
-            discord.SelectOption(label="Free Fire",     value="freefire",  emoji="🔥"),
+            discord.SelectOption(label="Free Fire",     value="freefire",  emoji="🧨"),
             discord.SelectOption(label="Discord",       value="discord",   emoji="🎧"),
-            discord.SelectOption(label="L4 (UDP)",      value="l4",        emoji="💥"),
+            discord.SelectOption(label="L4 (UDP)",      value="l4",        emoji="🌍"),
             discord.SelectOption(label="L7 (HTTP)",     value="l7",        emoji="🌐"),
         ]
         super().__init__(placeholder="เลือกโหมด", options=options,
@@ -115,7 +115,7 @@ class ModeSelect(ui.Select):
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                "ไม่ใช่คำสั่งของมึง", ephemeral=True
+                "ชั้นต่ำอยากจะใช้คำสั่งชั้นสูง รั่วว", ephemeral=True
             )
             return
         from bot import start_attack
