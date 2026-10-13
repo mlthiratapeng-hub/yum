@@ -8,17 +8,20 @@ from config import (
 
 
 # ═══════════════════════════════════════════
-# Initial Panel
+# Panel
 # ═══════════════════════════════════════════
 def build_panel() -> ui.LayoutView:
     view = ui.LayoutView(timeout=None)
-    c = ui.Container(accent_color=discord.Color.pink())
+    c = ui.Container()   # ← ไม่ใส่ accent_color
 
     c.add_item(ui.TextDisplay(
         f"# {EMOJI_HEADER} **Botnet Attack**"
     ))
     c.add_item(ui.TextDisplay(
-        f"{EMOJI_CONTACT} **สนใจติดต่อ Tk มาเลยค้าบ {PRICE_TEXT}**\n\n"
+        f"{EMOJI_CONTACT} **สนใจติดต่อ Tk มาเลยค้าบ {PRICE_TEXT}**"
+    ))
+    c.add_item(ui.Separator())
+    c.add_item(ui.TextDisplay(
         f"**กฎการใช้**\n"
         f"ห้ามยิง Local IP `127.0.0.1` อย่างเดียวพออ"
     ))
@@ -77,17 +80,20 @@ class AttackModal(ui.Modal, title="Botnet Attack"):
 
 
 # ═══════════════════════════════════════════
-# Mode selection
+# Mode select
 # ═══════════════════════════════════════════
 def build_mode_select(user_id: int, target: str, port: int,
                       duration: int) -> ui.LayoutView:
     view = ui.LayoutView(timeout=300)
-    c = ui.Container(accent_color=discord.Color.blurple())
+    c = ui.Container()   # ← ไม่มีสี
+
+    c.add_item(ui.TextDisplay("# เลือกโหมดการยิง"))
     c.add_item(ui.TextDisplay(
-        f"# เลือกโหมดการยิง\n"
-        f"Target: `{target}`\n"
-        f"Port: `{port}`\n"
-        f"Time: `{duration}s`"
+        f"```\n"
+        f"[+] Target : {target}\n"
+        f"[+] Port   : {port}\n"
+        f"[+] Time   : {duration}s\n"
+        f"```"
     ))
     c.add_item(ui.ActionRow().add_item(
         ModeSelect(user_id, target, port, duration)
@@ -99,11 +105,11 @@ def build_mode_select(user_id: int, target: str, port: int,
 class ModeSelect(ui.Select):
     def __init__(self, user_id: int, target: str, port: int, duration: int):
         options = [
-            discord.SelectOption(label="Minecraft",     value="minecraft", emoji="⛏️"),
-            discord.SelectOption(label="Free Fire",     value="freefire",  emoji="🧨"),
-            discord.SelectOption(label="Discord",       value="discord",   emoji="🎧"),
-            discord.SelectOption(label="L4 (UDP)",      value="l4",        emoji="🌍"),
-            discord.SelectOption(label="L7 (HTTP)",     value="l7",        emoji="🌐"),
+            discord.SelectOption(label="Minecraft", value="minecraft", emoji="⛏️"),
+            discord.SelectOption(label="Free Fire", value="freefire",  emoji="🔥"),
+            discord.SelectOption(label="Discord",   value="discord",   emoji="🎧"),
+            discord.SelectOption(label="L4 (UDP)",  value="l4",        emoji="🌍"),
+            discord.SelectOption(label="L7 (HTTP)", value="l7",        emoji="🌐"),
         ]
         super().__init__(placeholder="เลือกโหมด", options=options,
                          custom_id="mode_select")
@@ -114,9 +120,7 @@ class ModeSelect(ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "ชั้นต่ำอยากจะใช้คำสั่งชั้นสูง รั่วว", ephemeral=True
-            )
+            await interaction.response.send_message("ไม่ใช่คำสั่งของมึง", ephemeral=True)
             return
         from bot import start_attack
         await start_attack(interaction, self.values[0], self.target,
@@ -124,32 +128,26 @@ class ModeSelect(ui.Select):
 
 
 # ═══════════════════════════════════════════
-# Attack running display
+# Attack running — terminal style (ตามภาพ 2)
 # ═══════════════════════════════════════════
 def build_attack_running(target: str, port: int, mode: str,
                          time_left: int, total: int,
-                         speed: str) -> ui.LayoutView:
+                         speed: str, hits: int = 0) -> ui.LayoutView:
     view = ui.LayoutView(timeout=None)
-    c = ui.Container(accent_color=discord.Color.pink())
+    c = ui.Container()
 
-    label = "IP" if _is_ip(target) else "URL"
+    c.add_item(ui.TextDisplay("# Attack Launched Successfully"))
     c.add_item(ui.TextDisplay(
-        f"# **Ddos ATTACK**\n"
-        f"{label}: `{target}`\n"
-        f"Port: `{port}`\n"
-        f"Mode: `{mode}`\n"
-        f"Time: `{time_left}s` / `{total}s`\n"
-        f"Speed Terget: `{speed}`"
+        f"```\n"
+        f"[+] Target    : {target}\n"
+        f"[+] Port      : {port}\n"
+        f"[+] Method    : {mode}\n"
+        f"[+] Time      : {time_left}s / {total}s\n"
+        f"[+] Speed     : {speed}\n"
+        f"[+] Hits      : {hits}\n"
+        f"[+] Cooldown  : {'Running' if time_left > 0 else 'Ready'}\n"
+        f"[+] Slot      : 0/1\n"
+        f"```"
     ))
     view.add_item(c)
     return view
-
-
-def _is_ip(t: str) -> bool:
-    parts = t.split(".")
-    if len(parts) != 4:
-        return False
-    try:
-        return all(0 <= int(p) <= 255 for p in parts)
-    except ValueError:
-        return False
