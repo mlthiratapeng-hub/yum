@@ -4,8 +4,6 @@ import time
 import aiosqlite
 from config import DATA_DIR, DB_PATH
 
-_ALLOWED = {"balance", "devices", "warnings", "banned", "total_deposited"}
-
 
 class Database:
     def __init__(self, path: str = DB_PATH):
@@ -32,7 +30,6 @@ class Database:
             """)
             await db.commit()
 
-    # ── users / virus ──
     async def get_user(self, user_id: int):
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
